@@ -1,13 +1,14 @@
 package org.firstinspires.ftc.teamcode;
 
-import java.util.Arrays;
 import java.util.Collections;
 
 public class PID_Controller {
-    int kP, kI, kD;
-    double[] memory = new double[100];
-    double[] I_memory = new double[100];
-    double SP = 0;
+    private int kP, kI, kD;
+    private double[] PV_memory = new double[100];
+    private double I_sum = 0;
+    private double I_count = 0;
+    private double[] SP_memory = new double[100];
+    private double SP;
 
     PID_Controller(int p, int i, int d, double sp){
         kP = p;
@@ -17,12 +18,14 @@ public class PID_Controller {
     }
 
     public void set_memory(double[] mem){
-        memory = mem;
+        PV_memory = mem;
     }
 
-    public void add_timestep(double step){
-        memory[99] = step;
-        Collections.rotate(Arrays.asList(memory), 1);
+    public void add_timestep(double PV, double SP){
+        PV_memory[99] = PV;
+        Collections.rotate(Collections.singletonList(PV_memory), 1);
+        SP_memory[99] = SP;
+        Collections.rotate(Collections.singletonList(SP_memory), 1);
     }
 
     public void set_SP(double sp){
@@ -35,18 +38,20 @@ public class PID_Controller {
     }
 
     private double[] get_PID(){
-        double[] ret = {get_P(), get_I(), get_D()};
+        return new double[]{kP * get_P(), kI * get_I(), kD * get_D()};
     }
 
     private double get_P(){
-        return memory[0] - SP;
+        return PV_memory[0] - SP;
     }
 
     private double get_I(){
-
+        I_sum += PV_memory[1] - PV_memory[0];
+        I_count++;
+        return I_sum / I_count;
     }
 
     private double get_D(){
-        
+        return (PV_memory[1] - SP_memory[1]) - (PV_memory[0] - SP_memory[0]) / 1; //Mess around with "dt" a little bit here
     }
 }
