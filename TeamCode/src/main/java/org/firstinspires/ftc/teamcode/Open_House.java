@@ -4,6 +4,7 @@ import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.matrices.GeneralMatrixF;
@@ -14,13 +15,19 @@ import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
 import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 
 @TeleOp(name = "Field Centric w/ PID", group = "tests")
-public class field_centric_with_rotation_PID extends LinearOpMode {
+public class Open_House extends LinearOpMode {
     //private Gyroscope imu;
     private BNO055IMU imu;
     private DcMotor fl;
     private DcMotor bl;
     private DcMotor fr;
     private DcMotor br;
+
+    private DcMotor wr;
+    private DcMotor wl;
+
+    private Servo srv1;
+    private Servo srv2;
 
     @Override
     public void runOpMode(){
@@ -29,6 +36,13 @@ public class field_centric_with_rotation_PID extends LinearOpMode {
         bl = hardwareMap.get(DcMotor.class, "bl");
         fr = hardwareMap.get(DcMotor.class, "fr");
         br = hardwareMap.get(DcMotor.class, "br");
+
+        //Winch Initialization
+        wr = hardwareMap.get(DcMotor.class, "wr");
+        wl = hardwareMap.get(DcMotor.class, "wl");
+
+        srv1 = hardwareMap.get(Servo.class, "grab1");
+        srv2 = hardwareMap.get(Servo.class, "grab2");
 
         //IMU Initialization
         BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
@@ -83,7 +97,7 @@ public class field_centric_with_rotation_PID extends LinearOpMode {
 
             robot_vector = orientation.multiplied(controller_vector); //Magic happens here
             double pid_result = pid_controller.get_PID();
-            if(gamepad1.a){
+            if(gamepad1.right_stick_x != 0){
                 fl.setPower(Range.clip((-robot_vector.get(1) * 0.01 + robot_vector.get(0) * 0.01 - gamepad1.right_stick_x), -1, 1));
                 fr.setPower(Range.clip((robot_vector.get(1) * 0.01 + robot_vector.get(0) * 0.01 - gamepad1.right_stick_x), -1, 1));
                 br.setPower(Range.clip((robot_vector.get(1) * 0.01 - robot_vector.get(0) * 0.01 - gamepad1.right_stick_x), -1, 1));
@@ -102,6 +116,31 @@ public class field_centric_with_rotation_PID extends LinearOpMode {
 //            br.setPower(Range.clip((robot_vector.get(1) * 0.01 - robot_vector.get(0) * 0.01), -1, 1));
 //            bl.setPower(Range.clip((-robot_vector.get(1) * 0.01 - robot_vector.get(0) * 0.01), -1, 1));
 
+            if(gamepad1.a){
+                wr.setPower(1);
+                wl.setPower(-1);
+            }
+            else if(gamepad1.b){
+                wr.setPower(-1);
+                wl.setPower(1);
+            }
+            else{
+                wr.setPower(0);
+                wl.setPower(0);
+            }
+
+            if(gamepad1.y){
+                srv1.setPosition(0);
+                srv2.setPosition(1);
+            }
+            if(gamepad1.x){
+                srv1.setPosition(1);
+                srv2.setPosition(0);
+            }
+            if(gamepad1.right_bumper){
+                srv1.setPosition(0.5);
+                srv2.setPosition(0.5);
+            }
             telemetry.addData("angle", robot_angle);
             telemetry.addData("robot vec 0", robot_vector.get(0) * 0.01);
             telemetry.addData("robot vec 1", robot_vector.get(1) * 0.01);

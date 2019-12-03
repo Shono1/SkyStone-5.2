@@ -4,6 +4,7 @@ import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.matrices.GeneralMatrixF;
@@ -22,6 +23,11 @@ public class test_for_field_centric_drive extends LinearOpMode {
     private DcMotor fr;
     private DcMotor br;
 
+    private DcMotor lift;
+
+    private Servo lg;
+    private Servo rg;
+
     @Override
     public void runOpMode(){
         //Dc Motor Initialization
@@ -29,6 +35,11 @@ public class test_for_field_centric_drive extends LinearOpMode {
         bl = hardwareMap.get(DcMotor.class, "bl");
         fr = hardwareMap.get(DcMotor.class, "fr");
         br = hardwareMap.get(DcMotor.class, "br");
+
+        lift = hardwareMap.get(DcMotor.class, "lift");
+
+        lg = hardwareMap.get(Servo.class, "lg");
+        rg = hardwareMap.get(Servo.class, "rg");
 
         //IMU Initialization
         BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
@@ -49,6 +60,25 @@ public class test_for_field_centric_drive extends LinearOpMode {
 
         waitForStart();
         while (opModeIsActive()){
+            if(gamepad1.right_bumper){
+                lift.setPower(1);
+            }
+            else if(gamepad1.left_bumper){
+                lift.setPower(-1);
+            }
+            else{
+                lift.setPower(0);
+            }
+
+            if(gamepad1.a){
+                lg.setPosition(0.6);
+                rg.setPosition(0);
+            }
+            else if(gamepad1.b){
+                lg.setPosition(0.2);
+                rg.setPosition(0.7);
+            }
+
             Orientation o = imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.RADIANS);
             robot_angle = o.firstAngle;
             temp = rotation(robot_angle);
@@ -77,6 +107,8 @@ public class test_for_field_centric_drive extends LinearOpMode {
             telemetry.addData("robot vec 0", robot_vector.get(0) * 0.01);
             telemetry.addData("robot vec 1", robot_vector.get(1) * 0.01);
             telemetry.update();
+
+
         }
     }
 
