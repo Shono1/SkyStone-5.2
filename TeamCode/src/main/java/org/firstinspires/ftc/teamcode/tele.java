@@ -1,7 +1,5 @@
 package org.firstinspires.ftc.teamcode;
 
-import com.qualcomm.hardware.bosch.BNO055IMU;
-import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.Servo;
@@ -15,9 +13,9 @@ import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
 import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 
 @TeleOp(name = "tele")
-public class tele extends LinearOpMode {
+public class tele extends Basic_Auto {
     //private Gyroscope imu;
-    private BNO055IMU imu;
+    //private BNO055IMU imu;
     private DcMotor fl;
     private DcMotor bl;
     private DcMotor fr;
@@ -36,8 +34,9 @@ public class tele extends LinearOpMode {
 
 
     @Override
-    public void runOpMode(){
+    public void runOpMode() {
         //Dc Motor Initialization
+        telemetry.addData("imu", imu.getAngularOrientation().firstAngle);
         fl = hardwareMap.get(DcMotor.class, "fl");
         bl = hardwareMap.get(DcMotor.class, "bl");
         fr = hardwareMap.get(DcMotor.class, "fr");
@@ -55,13 +54,13 @@ public class tele extends LinearOpMode {
         bgr = hardwareMap.get(Servo.class, "ablock_2");
 
         //IMU Initialization
-        BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
-        parameters.mode = BNO055IMU.SensorMode.IMU;
-        parameters.angleUnit = BNO055IMU.AngleUnit.RADIANS;
-        parameters.accelUnit = BNO055IMU.AccelUnit.METERS_PERSEC_PERSEC;
-        parameters.loggingEnabled = false;
-        imu = hardwareMap.get(BNO055IMU.class, "imu");
-        imu.initialize(parameters);
+//        BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
+//        parameters.mode = BNO055IMU.SensorMode.IMU;
+//        parameters.angleUnit = BNO055IMU.AngleUnit.RADIANS;
+//        parameters.accelUnit = BNO055IMU.AccelUnit.METERS_PERSEC_PERSEC;
+//        parameters.loggingEnabled = false;
+//        imu = hardwareMap.get(BNO055IMU.class, "imu");
+//        imu.initialize(parameters);
 
         //Odometry Variable Initialization
         VectorF controller_vector = new VectorF(0,0);
@@ -77,6 +76,7 @@ public class tele extends LinearOpMode {
         bgl.setPosition(0);
         bgr.setPosition(0);
 
+        boolean slow = false;
         waitForStart();
         while (opModeIsActive()){
             if(gamepad1.right_bumper){
@@ -93,12 +93,12 @@ public class tele extends LinearOpMode {
             }
 
             if(gamepad1.a){
-                lg.setPosition(1);
-                rg.setPosition(0);
+                lg.setPosition(0.8);
+                rg.setPosition(0.2);
             }
             else if(gamepad1.b){
-                lg.setPosition(0);
-                rg.setPosition(1);
+                lg.setPosition(0.5);
+                rg.setPosition(0.5);
             }
 
             if(gamepad1.x){
@@ -110,6 +110,20 @@ public class tele extends LinearOpMode {
                 fgl.setPosition(1);
                 fgr.setPosition(0);
             }
+            if(gamepad1.dpad_up){
+                lg.setPosition(0.95);
+                rg.setPosition(0.5);
+            }
+            if(gamepad1.dpad_down){
+                lg.setPosition(1);
+                rg.setPosition(0);
+            }
+            if(gamepad1.start){
+                if(slow) slow = false;
+                else if(!slow) slow = true;
+            }
+
+
             Orientation o = imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.RADIANS);
             robot_angle = o.firstAngle;
             temp = rotation(robot_angle);
@@ -134,12 +148,20 @@ public class tele extends LinearOpMode {
 //            fr.setPower(Range.clip((robot_vector.get(1) * 0.01 - robot_vector.get(0) * 0.01 - gamepad1.right_stick_x), -1, 1));
 //            br.setPower(Range.clip((robot_vector.get(1) * 0.01 + robot_vector.get(0) * 0.01 - gamepad1.right_stick_x), -1, 1));
 //            bl.setPower(Range.clip((-robot_vector.get(1) * 0.01 + robot_vector.get(0) * 0.01 - gamepad1.right_stick_x), -1, 1));
-
-            fl.setPower(-Range.clip((-robot_vector.get(1) * 0.01 + robot_vector.get(0) * 0.01 - gamepad1.right_stick_x), -1, 1));
-            fr.setPower(-Range.clip((robot_vector.get(1) * 0.01 + robot_vector.get(0) * 0.01 - gamepad1.right_stick_x), -1, 1));
-            br.setPower(-Range.clip((robot_vector.get(1) * 0.01 - robot_vector.get(0) * 0.01 - gamepad1.right_stick_x), -1, 1));
-            bl.setPower(-Range.clip((-robot_vector.get(1) * 0.01 - robot_vector.get(0) * 0.01 - gamepad1.right_stick_x), -1, 1));
-            sp_angle = robot_angle;
+            if(!slow) {
+                fl.setPower(Range.clip((-robot_vector.get(1) * 0.02 + robot_vector.get(0) * 0.02 - gamepad1.right_stick_x), -1, 1));
+                fr.setPower(Range.clip((robot_vector.get(1) * 0.02 + robot_vector.get(0) * 0.02 - gamepad1.right_stick_x), -1, 1));
+                br.setPower(Range.clip((robot_vector.get(1) * 0.02 - robot_vector.get(0) * 0.02 - gamepad1.right_stick_x), -1, 1));
+                bl.setPower(Range.clip((-robot_vector.get(1) * 0.02 - robot_vector.get(0) * 0.02 - gamepad1.right_stick_x), -1, 1));
+                sp_angle = robot_angle;
+            }
+            else {
+                fl.setPower(0.4 * Range.clip((-robot_vector.get(1) * 0.02 + robot_vector.get(0) * 0.02 - gamepad1.right_stick_x), -1, 1));
+                fr.setPower(0.4 * Range.clip((robot_vector.get(1) * 0.02 + robot_vector.get(0) * 0.02 - gamepad1.right_stick_x), -1, 1));
+                br.setPower(0.4 * Range.clip((robot_vector.get(1) * 0.02 - robot_vector.get(0) * 0.02 - gamepad1.right_stick_x), -1, 1));
+                bl.setPower(0.4 * Range.clip((-robot_vector.get(1) * 0.02 - robot_vector.get(0) * 0.02 - gamepad1.right_stick_x), -1, 1));
+                sp_angle = robot_angle;
+            }
 
 //            else {
 //                fl.setPower(-Range.clip((-robot_vector.get(1) * 0.01 + robot_vector.get(0) * 0.01 - rot), -1, 1));
@@ -168,4 +190,6 @@ public class tele extends LinearOpMode {
     public static float to_degrees(float angle){
         return (float) (angle * 180 / Math.PI);
     }
+
+
 }

@@ -7,10 +7,11 @@ public class Foundation_Auto_Red extends Basic_Auto {
     @Override
     public void runOpMode() throws InterruptedException {
         super.runOpMode();
+
         waitForStart();
 
-        floorMove(7_000, Math.PI);
-        floorMove(28_500, -0.5 * Math.PI);
+        floorMove(7_000, 0);
+        floorMove(27_500, -0.5 * Math.PI, 0.2);
         grab();
 
         floorMove(27_000, 0.5 * Math.PI);

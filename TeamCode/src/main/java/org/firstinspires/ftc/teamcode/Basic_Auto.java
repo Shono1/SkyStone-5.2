@@ -4,14 +4,16 @@ import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.ColorSensor;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DistanceSensor;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.matrices.GeneralMatrixF;
 import org.firstinspires.ftc.robotcore.external.matrices.VectorF;
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
 public class Basic_Auto extends LinearOpMode {
-    protected BNO055IMU imu;
+    protected static BNO055IMU imu;
     protected DcMotor fl;
     protected DcMotor bl;
     protected DcMotor fr;
@@ -19,10 +21,6 @@ public class Basic_Auto extends LinearOpMode {
 
     protected DcMotor wr;
     protected DcMotor wl;
-    protected DcMotor dummy;
-
-    private Servo lg;
-    private Servo rg;
 
     private Servo fgl;
     private Servo fgr;
@@ -34,6 +32,9 @@ public class Basic_Auto extends LinearOpMode {
 
     protected ColorSensor clr_l;
     protected ColorSensor clr_r;
+
+    protected DistanceSensor dist_r;
+    protected DistanceSensor dist_l;
 
     private final double FLOOR = 0.4;
 
@@ -58,6 +59,9 @@ public class Basic_Auto extends LinearOpMode {
         clr_l = hardwareMap.get(ColorSensor.class, "clr_l");
         clr_r = hardwareMap.get(ColorSensor.class, "clr_r");
 
+        dist_r = hardwareMap.get(DistanceSensor.class, "dist_r");
+        dist_l = hardwareMap.get(DistanceSensor.class, "dist_l");
+
         //IMU Initialization
         BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
         parameters.mode = BNO055IMU.SensorMode.IMU;
@@ -78,7 +82,7 @@ public class Basic_Auto extends LinearOpMode {
 
 
         // Odometer PID initialization
-        heading_pid = new PID_Controller(1.5, 0.8, 0, 0);
+        heading_pid = new PID_Controller(1.7, 0.8, 0, 0);
         x_pid = new PID_Controller(0.00006, 0.0001, 0, 1);
         y_pid = new PID_Controller(0.00006, 0.0001, 0, 1);
 
@@ -238,20 +242,20 @@ public class Basic_Auto extends LinearOpMode {
     }
 
     protected boolean is_black(ColorSensor clr){
-        if(clr.red() < 10 && clr.blue() < 10 && clr.green() < 10) return true;
+        if(clr.red() < 65 && clr.blue() < 65 && clr.green() < 65) return true;
         return false;
     }
 
     protected void grab_block(){
-        fgl.setPosition(0.25);
-        fgr.setPosition(0.6);
+        fgl.setPosition(0.4);
+        fgr.setPosition(0.5);
         bgl.setPosition(1);
-        bgr.setPosition(0.8);
+        bgr.setPosition(1);
     }
 
     protected void move_and_sense(){
         // How far it needs to go
-        int x_steps = 45_000;
+        int x_steps = -45_000;
         int y_steps = 0;
 
 
@@ -279,8 +283,8 @@ public class Basic_Auto extends LinearOpMode {
         // Moving robot
         while(((x_pid.get_PV() > x_pid.get_SP() + 1500 || x_pid.get_PV() < x_pid.get_SP() - 1500) ||
                 (y_pid.get_PV() > y_pid.get_SP() + 1500 || y_pid.get_PV() < y_pid.get_SP() - 1500) ||
-                (heading_pid.get_PV() > heading_pid.get_SP() + 0.05 || heading_pid.get_PV() <
-                        heading_pid.get_SP() - 0.05)) && opModeIsActive()){
+                (heading_pid.get_PV() > heading_pid.get_SP() + 0.02 || heading_pid.get_PV() <
+                        heading_pid.get_SP() - 0.02)) && opModeIsActive()){
             // Gradual Speed Up
             if(count < max_count) count++;
             double ratio = (double) count / max_count;
@@ -466,6 +470,95 @@ public class Basic_Auto extends LinearOpMode {
         bl.setPower(0);
     }
 
+
+    public void specialFloorMove(int r, double theta){
+        wr.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        wl.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+
+        // TODO: Add speed floor (lim pid -> 0 = floor(eg 0.4)
+        // How far it needs to go
+        int x_steps = (int) (Math.cos(theta) * r);
+        int y_steps = (int) (Math.sin(theta) * r);
+
+
+        // Giving PIDs setpoints
+        x_pid.set_SP(x_steps);
+        x_pid.set_PV(0);
+
+        y_pid.set_SP(y_steps);
+        y_pid.set_PV(0);
+
+        wr.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        wl.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+
+        heading_pid.set_SP(sp_angle);
+        heading_pid.set_PV(imu.getAngularOrientation().firstAngle);
+
+        // Setting speed up parameters
+        int count = 0;
+        int max_count = 30;
+
+        // Clear encoders
+
+        // dummy.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+
+        // Moving robot
+        while(((x_pid.get_PV() > x_pid.get_SP() + 1000 || x_pid.get_PV() < x_pid.get_SP() - 1000) ||
+                (y_pid.get_PV() > y_pid.get_SP() + 1000 || y_pid.get_PV() < y_pid.get_SP() - 1000) ||
+                (heading_pid.get_PV() > heading_pid.get_SP() + 0.05 || heading_pid.get_PV() <
+                        heading_pid.get_SP() - 0.05)) && opModeIsActive()){
+            // Gradual Speed Up
+            if(count < max_count) count++;
+            double ratio = (double) count / max_count;
+
+            // Get movement components
+            double x, y, rotation;
+            if(x_pid.get_PV() > x_pid.get_SP() + 1000 || x_pid.get_PV() < x_pid.get_SP() - 1000)
+                x = x_pid.get_PID() + FLOOR * Math.cos(get_angle(x_pid.get_SP(), y_pid.get_SP(), x_pid.get_PV(), y_pid.get_PV()));
+            else x = 0;
+
+            if(y_pid.get_PV() > y_pid.get_SP() + 1000 || y_pid.get_PV() < y_pid.get_SP() - 1000)
+                y = y_pid.get_PID() + FLOOR * Math.sin(get_angle(x_pid.get_SP(), y_pid.get_SP(), x_pid.get_PV(), y_pid.get_PV()));
+            else y = 0;
+
+            rotation = heading_pid.get_PID();
+
+            // Set motor powers
+            fl.setPower(ratio * Range.clip((-y - x + rotation), -1, 1));
+            fr.setPower(ratio * Range.clip((y - x + rotation), -1, 1));
+            br.setPower(ratio * Range.clip((y + x + rotation), -1, 1));
+            bl.setPower(ratio * Range.clip((-y + x + rotation), -1, 1));
+
+            // Set PID setpoints
+            int x_pos, y_pos;
+
+            x_pos = wl.getCurrentPosition();
+            y_pos = wr.getCurrentPosition();
+
+            x_pid.set_PV(x_pos); // x port 0
+            y_pid.set_PV(y_pos); // y port 1
+            heading_pid.set_PV(imu.getAngularOrientation().firstAngle); // imu
+
+            telemetry.addData("x target", x_pid.get_SP());
+            telemetry.addData("x ticks", wl.getCurrentPosition());
+            telemetry.addData("y target", y_pid.get_SP());
+            telemetry.addData("y ticks", wr.getCurrentPosition());
+            telemetry.addData("angle between points",
+                    get_angle(x_pid.get_SP(), y_pid.get_SP(), x_pid.get_PV(), y_pid.get_PV()));
+            telemetry.addData("cos * floor", FLOOR * Math.cos(get_angle(x_pid.get_SP(), y_pid.get_SP(), x_pid.get_PV(), y_pid.get_PV())));
+            telemetry.addData("sin * floor", FLOOR * Math.sin(get_angle(x_pid.get_SP(), y_pid.get_SP(), x_pid.get_PV(), y_pid.get_PV())));
+
+            telemetry.update();
+            idle();
+        }
+
+        // Turn off motors
+        fl.setPower(0);
+        fr.setPower(0);
+        br.setPower(0);
+        bl.setPower(0);
+    }
+
     public void floorMove(int r, double theta, double floor){
         wr.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         wl.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
@@ -572,7 +665,116 @@ public class Basic_Auto extends LinearOpMode {
         return angle;
     }
 
+    protected void moveToBlocks(double d){
 
+        // TODO: write code to make bot move with distance sensors
+        PID_Controller dl_pid = new PID_Controller(0.0925, 0, 0, d);
+        PID_Controller dr_pid = new PID_Controller(0.0925, 0, 0, d);
+        heading_pid.set_SP(0);
+        // PID_Controller x_pid = new PID_Controller(1.5, 0.8, 0, 0);
+
+        double floor = 0.3;
+        int count = 0;
+        int max_count = 45;
+
+        while(((dl_pid.get_PV() > dl_pid.get_SP() + 1.5 || dl_pid.get_PV() < dl_pid.get_SP() - 1.5) ||
+                (dr_pid.get_PV() > dr_pid.get_SP() + 1.5 || dr_pid.get_PV() < dr_pid.get_SP() - 1.5))
+                        && opModeIsActive())
+        {
+            dl_pid.set_PV(dist_l.getDistance(DistanceUnit.CM));
+            dr_pid.set_PV(dist_r.getDistance(DistanceUnit.CM));
+            // Get movement components
+            count++;
+            double ratio = (double) count / max_count;
+            double r, y, rotation;
+
+
+            rotation = heading_pid.get_PID();
+
+
+            // Set motor powers
+            fl.setPower(0.6 * Range.clip(ratio * -dl_pid.get_PID(), -1, 1));
+            fr.setPower(0.6 * Range.clip(ratio * dr_pid.get_PID(), -1, 1));
+            br.setPower(0.6 * Range.clip(ratio * dr_pid.get_PID(), -1, 1));
+            bl.setPower(0.6 * Range.clip(ratio * -dl_pid.get_PID(), -1, 1));
+
+            telemetry.addData("dist l", dist_l.getDistance(DistanceUnit.CM));
+            telemetry.addData("dist r", dist_r.getDistance(DistanceUnit.CM));
+            telemetry.addData("dl_pid", dl_pid.get_PID());
+            telemetry.addData("dr_pid", dr_pid.get_PID());
+            telemetry.addData("heading correction", heading_pid.get_PID());
+            telemetry.addData("temp", Range.clip((ratio * -dr_pid.get_PID()), -1, 1));
+            telemetry.update();
+        }
+        fl.setPower(0);
+        fr.setPower(0);
+        br.setPower(0);
+        bl.setPower(0);
+    }
+
+    protected void moveAlongBlocks(int r, double d, boolean side){
+        PID_Controller dl_pid = new PID_Controller(0.0925, 0, 0, d);
+        PID_Controller dr_pid = new PID_Controller(0.0925, 0, 0, d);
+        PID_Controller r_pid = new PID_Controller(0.00006, 0.0001, 0, r);
+        heading_pid.set_SP(0);
+        // PID_Controller x_pid = new PID_Controller(1.5, 0.8, 0, 0);
+
+        double floor = 0.3;
+        int count = 0;
+        int max_count = 45;
+        wr.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        wl.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+
+        while(((dl_pid.get_PV() > dl_pid.get_SP() + 1.5 || dl_pid.get_PV() < dl_pid.get_SP() - 1.5) ||
+                (dr_pid.get_PV() > dr_pid.get_SP() + 1.5 || dr_pid.get_PV() < dr_pid.get_SP() - 1.5) ||
+                r_pid.get_PV() > r_pid.get_SP() + 1000 || r_pid.get_PV() < r_pid.get_SP() - 1000)
+                && opModeIsActive())
+        {
+            dl_pid.set_PV(dist_l.getDistance(DistanceUnit.CM));
+            dr_pid.set_PV(dist_r.getDistance(DistanceUnit.CM));
+            // Get movement components
+            count++;
+            double ratio = (double) count / max_count;
+            double x, y, rotation;
+
+            r_pid.set_PV(wl.getCurrentPosition());
+            x = r_pid.get_PID();
+            if(x < floor && r_pid.get_PV() > r_pid.get_SP() + 1000 || r_pid.get_PV() < r_pid.get_SP() - 1000)
+                x = floor;
+
+            if(sense_block()) break;
+
+            if(side) {
+                // Set motor powers
+                fl.setPower(0.6 * Range.clip(ratio * -dl_pid.get_PID() + x, -1, 1));
+                fr.setPower(0.6 * Range.clip(ratio * dr_pid.get_PID() + x, -1, 1));
+                br.setPower(0.6 * Range.clip(ratio * dr_pid.get_PID() - x, -1, 1));
+                bl.setPower(0.6 * Range.clip(ratio * -dl_pid.get_PID() - x, -1, 1));
+            }
+            else{
+                fl.setPower(0.6 * Range.clip(ratio * -dl_pid.get_PID() - x, -1, 1));
+                fr.setPower(0.6 * Range.clip(ratio * dr_pid.get_PID() - x, -1, 1));
+                br.setPower(0.6 * Range.clip(ratio * dr_pid.get_PID() + x, -1, 1));
+                bl.setPower(0.6 * Range.clip(ratio * -dl_pid.get_PID() + x, -1, 1));
+            }
+
+            telemetry.addData("dist l", dist_l.getDistance(DistanceUnit.CM));
+            telemetry.addData("dist r", dist_r.getDistance(DistanceUnit.CM));
+            telemetry.addData("dl_pid", dl_pid.get_PID());
+            telemetry.addData("dr_pid", dr_pid.get_PID());
+            telemetry.addData("x ticks", wl.getCurrentPosition());
+            telemetry.addData("x pid", r_pid.get_PID());
+            telemetry.addData("heading correction", heading_pid.get_PID());
+            telemetry.addData("temp", Range.clip((ratio * -dr_pid.get_PID()), -1, 1));
+            telemetry.addData("clr left", is_black(clr_l) + " " + clr_l.toString());
+            telemetry.addData("clr right", is_black(clr_r) + " " + clr_r.toString());
+            telemetry.update();
+        }
+        fl.setPower(0);
+        fr.setPower(0);
+        br.setPower(0);
+        bl.setPower(0);
+    }
 
 
 }
