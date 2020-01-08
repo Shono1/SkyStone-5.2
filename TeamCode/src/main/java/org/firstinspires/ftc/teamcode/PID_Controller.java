@@ -12,7 +12,15 @@ public class PID_Controller {
     private double I = 0;
     private double P, last_P = 0;
 
-
+    /**
+     * Proportional Integral Derivative Controller
+     * Controls a process variable in relation to a setpoint
+     * For best results, tune heavily for each purpose
+     * @param p
+     * @param i
+     * @param d
+     * @param sp
+     */
     PID_Controller(double p, double i, double d, double sp){
         kP = p;
         kI = i;
@@ -39,6 +47,10 @@ public class PID_Controller {
         return 0.5;
     }
 
+    /**
+     * Returns the result of the PID controller
+     * @return
+     */
     public double get_PID(){
         return kP * get_P() + kI * get_I() + kD * get_D();
     }

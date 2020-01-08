@@ -12,6 +12,10 @@ import org.firstinspires.ftc.robotcore.external.matrices.GeneralMatrixF;
 import org.firstinspires.ftc.robotcore.external.matrices.VectorF;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
+/**
+ * Base class for all autonomous classes
+ * Contains various methods for movement and sensing
+ */
 public class Basic_Auto extends LinearOpMode {
     protected static BNO055IMU imu;
     protected DcMotor fl;
@@ -38,6 +42,11 @@ public class Basic_Auto extends LinearOpMode {
 
     private final double FLOOR = 0.4;
 
+    /**
+     * This is the code that is executed when the program is run
+     * This just sets up all the hardware and prepositions motors to fit within the sizing cubs
+     * @throws InterruptedException
+     */
     @Override
     public void runOpMode() throws InterruptedException {
         //Dc Motor Initialization
@@ -92,6 +101,12 @@ public class Basic_Auto extends LinearOpMode {
         // waitForStart();
     }
 
+    /**
+     * Old method for controlling 2 DoF arm
+     * @deprecated
+     * @param inner
+     * @param outer
+     */
     private void setArmPosition(double inner, double outer){
         fgl.setPosition(inner);
         bgl.setPosition(outer);
@@ -99,6 +114,12 @@ public class Basic_Auto extends LinearOpMode {
         bgr.setPosition(1 - outer);
     }
 
+    /**
+     * Method to move to polar coordinate where the robot is the origin
+     * It is reccomended to use floor move instead of this method
+     * @param r
+     * @param theta
+     */
     protected void polarMove(int r, double theta){
         // How far it needs to go
         int x_steps = (int) (Math.cos(theta) * r);
@@ -172,6 +193,11 @@ public class Basic_Auto extends LinearOpMode {
         bl.setPower(0);
     }
 
+    /**
+     * Rotates the robot; does not play well with other methods;
+     * Don't use
+     * @param radians
+     */
     protected void rotate(double radians){
         sp_angle += radians;
         heading_pid.set_SP(sp_angle);
@@ -196,6 +222,9 @@ public class Basic_Auto extends LinearOpMode {
 
     }
 
+    /**
+     * Set gripper servos to position to grab block
+     */
     protected void grab(){
         fgl.setPosition(0);
         fgr.setPosition(1);
@@ -203,12 +232,20 @@ public class Basic_Auto extends LinearOpMode {
 
     }
 
+    /**
+     * Set gripper to position to release blocks
+     */
     protected void release(){
         fgl.setPosition(1);
         fgr.setPosition(0);
         sleep(700);
     }
 
+    /**
+     * @Deprecated
+     * USed to be used to move foundation
+     * Replaced with floor move
+     */
     protected void move_foundation(){
         wr.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         wl.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
@@ -236,16 +273,29 @@ public class Basic_Auto extends LinearOpMode {
 
     }
 
+    /**
+     * Checks if robot is in front of a skystone
+     * @return
+     */
     protected boolean sense_block(){
         if(is_black(clr_r) && is_black(clr_l)) return true;
         return false;
     }
 
+    /**
+     * Checks if a color sensor is within the range adequate to be called black
+     * @param clr
+     * @return
+     */
     protected boolean is_black(ColorSensor clr){
         if(clr.red() < 65 && clr.blue() < 65 && clr.green() < 65) return true;
         return false;
     }
 
+    /**
+     * Used to control 2 DoF arm
+     * Clamps 2 DoF arm down on what should be a skystone
+     */
     protected void grab_block(){
         fgl.setPosition(0.4);
         fgr.setPosition(0.5);
@@ -253,6 +303,10 @@ public class Basic_Auto extends LinearOpMode {
         bgr.setPosition(1);
     }
 
+    /**
+     * Method used to move along wall of blocks and stop when one of them is black
+     * Stays constant 2cm away from wall
+     */
     protected void move_and_sense(){
         // How far it needs to go
         int x_steps = -45_000;
@@ -330,6 +384,10 @@ public class Basic_Auto extends LinearOpMode {
         bl.setPower(0);
     }
 
+    /**
+     * Old foundation moving method, use floor move
+     * @Deprecated
+     */
     public void red_fnd_start(){
         wr.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         wl.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
@@ -356,6 +414,10 @@ public class Basic_Auto extends LinearOpMode {
         bl.setPower(0);
     }
 
+    /**
+     * Old foundation moving method, use floor move
+     * @Deprecated
+     */
     public void blue_fnd_start(){
         wr.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         wl.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
@@ -382,6 +444,13 @@ public class Basic_Auto extends LinearOpMode {
         bl.setPower(0);
     }
 
+    /**
+     * Currently the standard movement method. Uses sprung odometry wheels to measure position,
+     * and uses PID controllers to control x and y components of movement. Has a floor that power
+     * can not go under if value is not in optimal range.
+     * @param r
+     * @param theta
+     */
     public void floorMove(int r, double theta){
         wr.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         wl.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
@@ -470,7 +539,11 @@ public class Basic_Auto extends LinearOpMode {
         bl.setPower(0);
     }
 
-
+    /**
+     * Special case method for FloorMove
+     * @param r
+     * @param theta
+     */
     public void specialFloorMove(int r, double theta){
         wr.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         wl.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
@@ -559,6 +632,12 @@ public class Basic_Auto extends LinearOpMode {
         bl.setPower(0);
     }
 
+    /**
+     * Floor move where you can set your own floor
+     * @param r
+     * @param theta
+     * @param floor
+     */
     public void floorMove(int r, double theta, double floor){
         wr.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         wl.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
@@ -647,6 +726,15 @@ public class Basic_Auto extends LinearOpMode {
         bl.setPower(0);
     }
 
+    /**
+     * Method to get angle between two points
+     * @deprecated
+     * @param x1
+     * @param y1
+     * @param x2
+     * @param y2
+     * @return
+     */
     private double get_angle(int x1, int y1, int x2, int y2){
         int x_delta = x1 - x2;
         int y_delta = y1 - y2;
@@ -656,6 +744,14 @@ public class Basic_Auto extends LinearOpMode {
         return angle;
     }
 
+    /**
+     * Method to get angle between two points
+     * @param x1
+     * @param y1
+     * @param x2
+     * @param y2
+     * @return
+     */
     private double get_angle(double x1, double y1, double x2, double y2){
         double x_delta = x1 - x2;
         double y_delta = y1 - y2;
@@ -665,6 +761,10 @@ public class Basic_Auto extends LinearOpMode {
         return angle;
     }
 
+    /**
+     * Method to move until 2 cm away from wall
+     * @param d
+     */
     protected void moveToBlocks(double d){
 
         // TODO: write code to make bot move with distance sensors
@@ -712,6 +812,12 @@ public class Basic_Auto extends LinearOpMode {
         bl.setPower(0);
     }
 
+    /**
+     * Move along blocks with a red or blue side flag
+     * @param r
+     * @param d
+     * @param side
+     */
     protected void moveAlongBlocks(int r, double d, boolean side){
         PID_Controller dl_pid = new PID_Controller(0.0925, 0, 0, d);
         PID_Controller dr_pid = new PID_Controller(0.0925, 0, 0, d);
